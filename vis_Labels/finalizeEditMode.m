@@ -44,7 +44,8 @@ function finalizeEditMode(event)
             
             % convert editedRect position to absolute datenums
             pos = editedRect.Position;
-            startWV = PARAMS.plot.dnum;  % spectrogram window start time in datenum format
+%             startWV = PARAMS.plot.dnum;  % spectrogram window start time in datenum format -  CMS edit
+startWV = REMORA.lt.lVis_det.currentEdit.startWV;  % use the reference captured when editing began, not a fresh read
             
             excelEpoch = datetime(2000, 1, 0);  % reference epoch
             % calculate absolute start and end times in "days since epoch"
@@ -55,10 +56,9 @@ function finalizeEditMode(event)
             startTime = excelEpoch + days(startTimeDays); 
             endTime = excelEpoch + days(endTimeDays);
             
-            % calculate start and end times in seconds relative to the beginning of the WAV file
-            wav_start_time_days = PARAMS.raw.dnumStart;  % Start time in datenum format
+            % Convert the WAV start time to datetime format
+            wav_start_time_days = PARAMS.raw.dnumStart(1);  % Start time in datenum format
             wav_start_datetime = excelEpoch + days(wav_start_time_days);  % Convert to datetime
-    
             % calculate start time in seconds relative to the WAV file start
             start_time_sec = seconds(startTime - wav_start_datetime);  % Time difference in seconds
             end_time_sec = seconds(endTime - wav_start_datetime);  % Time difference in seconds
@@ -67,6 +67,8 @@ function finalizeEditMode(event)
             maxFreq = pos(2) + pos(4);
     
             % update main data table with edited values
+            REMORA.lt.lVis_det.dataTable.start_time_sec(detectionIdx) = start_time_sec;
+            REMORA.lt.lVis_det.dataTable.end_time_sec(detectionIdx) = end_time_sec;
             REMORA.lt.lVis_det.dataTable.start_time(detectionIdx) = startTime;
             REMORA.lt.lVis_det.dataTable.end_time(detectionIdx) = endTime;
             REMORA.lt.lVis_det.dataTable.min_frequency(detectionIdx) = minFreq;
@@ -75,6 +77,7 @@ function finalizeEditMode(event)
             
             % update detection fields
             initializeDetectionFields(REMORA.lt.lVis_det.dataTable);
+            % initializeDetectionFields(REMORA.lt.lVis_det.dataTable, "time");
     
             % redraw spectrogram
             wmvControl('Overlay');
@@ -94,7 +97,7 @@ function finalizeEditMode(event)
                 REMORA.lt.lVis_det.dataTable.pr(detectionIdx) = 2;    
                 % populates data structure containing each bounding box
                 % (this data structure is used for plotting)
-                initializeDetectionFields(REMORA.lt.lVis_det.dataTable);
+                initializeDetectionFields(REMORA.lt.lVis_det.dataTable, "pr");
         
                 % remove original rectangle from the display
                 delete(REMORA.lt.lVis_det.currentEdit.originalRect);
@@ -109,7 +112,7 @@ function finalizeEditMode(event)
                 % delete data from dataTable
                 REMORA.lt.lVis_det.dataTable(detectionIdx, :) = [];
                 % update detection fields
-                initializeDetectionFields(REMORA.lt.lVis_det.dataTable);
+                initializeDetectionFields(REMORA.lt.lVis_det.dataTable, "delete");
 
             end
 

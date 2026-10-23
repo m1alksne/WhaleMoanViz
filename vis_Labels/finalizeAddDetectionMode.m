@@ -15,9 +15,12 @@ function finalizeAddDetectionMode(~,~)
 
      % Prompt for label selection
     labelOptions =REMORA.lt.lVis_det.labels;
+
+    %runtime long because it's waiting for user input
     [labelIdx, ok] = listdlg('PromptString', 'Select Label:', ...
                              'SelectionMode', 'single', ...
                              'ListString', labelOptions);
+    
     if ok
         label = labelOptions{labelIdx};
         disp(['Label selected: ', label]);
@@ -25,7 +28,8 @@ function finalizeAddDetectionMode(~,~)
          % Save the new detection
         pos = REMORA.tempRect.Position;
                          
-        startWV = PARAMS.plot.dnum;  % Spectrogram window start time in datenum format
+%         startWV = PARAMS.plot.dnum;  % Spectrogram window start time in datenum format
+startWV = REMORA.tempRectStartWV;  % use the reference captured when the box was started, not a fresh read CMS edit
 
         % Convert seconds to datenum and calculate absolute start and end times
         startTimeDays = startWV + pos(1) / (24 * 3600);  % Convert seconds offset to days
@@ -45,6 +49,8 @@ function finalizeAddDetectionMode(~,~)
         start_time_sec = seconds(startTime - wav_start_datetime);  % Time difference in seconds
         end_time_sec = seconds(endTime - wav_start_datetime);  % Time difference in seconds
 
+        startTime.Format = 'yyyy-MM-dd HH:mm:ss.SSS'; % Display with fractions of a second
+        endTime.Format = 'yyyy-MM-dd HH:mm:ss.SSS'; % Display with fractions of a second
         % Retrieve necessary fields for new detection row
         wav_file_path = fullfile(PARAMS.inpath, PARAMS.infile);
         score = 1;  % Default score, adjust if needed
@@ -96,7 +102,8 @@ function finalizeAddDetectionMode(~,~)
     if HANDLES.display.timeseries.Value
         plotTimeSeries
     end   
-
+    REMORA.lt.lVis_det.dataTable.start_time.Format = 'yyyy-MM-dd HH:mm:ss.SSS';
+    REMORA.lt.lVis_det.dataTable.end_time.Format = 'yyyy-MM-dd HH:mm:ss.SSS';
 end
 
 
@@ -139,6 +146,8 @@ function row = blankRowLike(T)
     % Build table
     row = cell2table(data, 'VariableNames', varNames);
 end
+
+
 
 % 
 

@@ -51,6 +51,7 @@ global REMORA
             disp(['Label selected: ', label]);
             REMORA.lt.lVis_det.dataTable.label(detectionIdx) = {label};
             REMORA.lt.lVis_det.detection.labels(detectionIdx) = {label};
+            % initializeDetectionFields(REMORA.lt.lVis_det.dataTable, 'label')
             wmvControl('Overlay');
         else
             disp('Label selection canceled.');
@@ -62,7 +63,7 @@ global REMORA
         % delete data from dataTable
         REMORA.lt.lVis_det.dataTable(detectionIdx, :) = [];
         % update detection fields
-        initializeDetectionFields(REMORA.lt.lVis_det.dataTable);
+        initializeDetectionFields(REMORA.lt.lVis_det.dataTable, 'delete');
         wmvControl('Overlay');
 
     elseif strcmp(action, 'MarkFP')
@@ -71,7 +72,7 @@ global REMORA
         % delete data from dataTable
         REMORA.lt.lVis_det.dataTable.pr(detectionIdx) = 2;
         % update detection fields
-        initializeDetectionFields(REMORA.lt.lVis_det.dataTable);
+        initializeDetectionFields(REMORA.lt.lVis_det.dataTable, 'pr')
         wmvControl('Overlay');
 
     elseif strcmp(action, 'MarkTP')
@@ -80,7 +81,7 @@ global REMORA
         % delete data from dataTable
         REMORA.lt.lVis_det.dataTable.pr(detectionIdx) = 1;
         % update detection fields
-        initializeDetectionFields(REMORA.lt.lVis_det.dataTable);
+        initializeDetectionFields(REMORA.lt.lVis_det.dataTable, 'pr')
         wmvControl('Overlay');
 
     end

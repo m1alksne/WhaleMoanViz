@@ -8,7 +8,7 @@ function addDetection(~, ~)
 % the box is funalized.
 % Created by Michaela Alksne and Shane Andres
 
-    global REMORA HANDLES
+    global REMORA HANDLES PARAMS % CMS added params here
 
     % Get the initial click position
     cursorPoint = get(HANDLES.subplt.specgram, 'CurrentPoint');
@@ -18,6 +18,7 @@ function addDetection(~, ~)
     % Create a temporary rectangle for visual feedback
     REMORA.tempRect = rectangle(HANDLES.subplt.specgram, 'Position', [x0, y0, 1, 1], ...
                                 'EdgeColor', 'cyan', 'LineWidth', 1.5, 'LineStyle', '--');
+    REMORA.tempRectStartWV = PARAMS.plot.dnum;   % <--pins down the reference for pos(1) CMS edit
 
     % Set up a mouse motion function to resize the rectangle
     set(HANDLES.fig.main, 'WindowButtonMotionFcn', @(~, ~) updateRectangleSize(x0, y0));

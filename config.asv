@@ -1,0 +1,82 @@
+%% config.m
+% Configuration for WhaleMoanViz
+
+global REMORA
+
+%% USER SETTINGS
+
+% Enable WhaleMoanDetector integration
+% false = WhaleMoanViz only
+% true  = Load settings from WhaleMoanDetector config.yaml
+USE_WHALEMOANDETECTOR = true;
+
+% Default labels (used only when WhaleMoanDetector is disabled) 
+DEFAULT_LABELS = {'NARW_up-call', 
+    'Bm_A_North_Atlantic', 
+    'Bm_B_North_Atlantic', 
+    'Bm_AB_North_Atlantic', 
+    'Bm_arch', 
+    'Ba_pulse-call', 
+    'Bp_20Hz', 
+    'Bp_40Hz', 
+    'Bb_down-sweep'};
+
+%% 
+
+% Ensure structures exist
+if ~isfield(REMORA,'lt')
+    REMORA.lt = struct;
+end
+
+if ~isfield(REMORA.lt,'lVis_det')
+    REMORA.lt.lVis_det = struct;
+end
+
+REMORA.lt.lVis_det.useWhaleMoanDetector = USE_WHALEMOANDETECTOR;
+
+if USE_WHALEMOANDETECTOR
+
+    % Ask user to locate the WhaleMoanDetector config.yaml
+    [fileName, filePath] = uigetfile( ...
+    {'*.yaml', 'YAML Files (*.yaml)'}, ...
+    'Select WhaleMoanDetector config.yaml');
+
+    if isequal(fileName,0)
+        error('No config.yaml selected.');
+    end
+
+    configFile = fullfile(filePath,fileName);
+
+    REMORA.lt.lVis_det.configFile = configFile;
+    REMORA.lt.lVis_det.wmdFolder = filePath;
+
+    % Read config.yaml
+    yaml = py.importlib.import_module('yaml');
+
+    fid = fopen(configFile,'r');
+    yamlText = fread(fid,'*char')';
+    fclose(fid);
+
+    cfg = yaml.safe_load(yamlText);
+
+    % Load labels from YAML
+    categories = cfg{'categories'};
+    REMORA.lt.lVis_det.labels = cell(categories.keys);
+
+    % Load Python environment if present
+    if isKey(cfg,'remora')
+        REMORA.lt.lVis_det.pyenvFolder = ...
+            string(cfg{'remora'}{'pyenv_folder'});
+    else
+        REMORA.lt.lVis_det.pyenvFolder = "";
+    end
+
+else
+
+    % Use local settings
+    REMORA.lt.lVis_det.configFile = "";
+    REMORA.lt.lVis_det.wmdFolder = "";
+    REMORA.lt.lVis_det.pyenvFolder = "";
+    REMORA.lt.lVis_det.labels = DEFAULT_LABELS;
+
+end

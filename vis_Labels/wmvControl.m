@@ -86,15 +86,26 @@ function wmvControl(action)
         else
             % sort by the 'start_time' column
             data = sortrows(data, 'start_time');
-        
-            data.start_time = datetime(data.start_time, 'InputFormat', 'yyyy-MM-dd HH:mm:ss');
-            data.end_time = datetime(data.end_time, 'InputFormat', 'yyyy-MM-dd HH:mm:ss');
-            excelEpoch = datetime(2000, 1, 0); % triton datetime format
+
+            % % Only add fractional seconds if the timestamp has no milliseconds
+            % needsFix = mod(second(data.start_time), 1) == 0;
+            % 
+            % data.start_time(needsFix) = ...
+            %     data.start_time(needsFix) + seconds(mod(data.start_time_sec(needsFix),1));
+            % 
+            % data.end_time(needsFix) = ...
+            %     data.end_time(needsFix) + seconds(mod(data.end_time_sec(needsFix),1));
+            
+            data.start_time = datetime(data.start_time, 'InputFormat', 'yyyy-MM-dd HH:mm:ss.SSS');
+            data.end_time = datetime(data.end_time, 'InputFormat', 'yyyy-MM-dd HH:mm:ss.SSS');
+            % Add only the fractional seconds from the Unix timestamps
             Starts_time = data.start_time;
-            % convert Start and Stop columns to datetime and calculate days since epoch
-            Starts = days(Starts_time - excelEpoch); 
-            Stops_time = data.end_time;
-            Stops = days(Stops_time - excelEpoch);
+            Stops_time   = data.end_time;
+
+            excelEpoch = datetime(2000,1,0);
+            
+            Starts = days(Starts_time - excelEpoch);
+            Stops  = days(Stops_time - excelEpoch);
         
             % add frequency and score
             Labels = data.label;
@@ -332,22 +343,67 @@ function wmvControl(action)
         wmvControl('Overlay');
         
     
-    elseif strcmp(action, 'PrevDetection')
-    % callback function to move plots to previous detection
-        motion('prevDet');
-        wmvControl('Overlay');
-        
+
    
     elseif strcmp(action, 'SmallStepForward')
     % callback function to move plots forwards
         motion('forward');
         wmvControl('Overlay');
         
+    % elseif strcmp(action, 'PrevDetection')
+    %     motion('prevDet');
+    %     wmvControl('Overlay');
+    elseif strcmp(action, 'PrevDetection')
+
+        [prevDet, ~] = lt_lVis_envDet_rf;
+
+        if isempty(prevDet)
+            disp('First detection! No detections found before current window.')
+            return
+        end
+
+        % Previous detection is still inside the current x.wav
+        if prevDet >= PARAMS.raw.dnumStart(1)
+            disp(prevDet)
+            disp(PARAMS.raw.dnumStart(1))
+            motion('prevDet');
+            wmvControl('Overlay');
+            return
+        else
+            wmvControl('LoadPrev')
+        end
+
+        % ---------- Cross-x.wav case only --------- 
+
+        winLength = PARAMS.tseg.sec;
+        stepFW = winLength * 0.5;
+        PARAMS.plot.dnum = prevDet - datenum([0 0 0 0 0 stepFW]);
+        PARAMS.plot.dvec = datevec(PARAMS.plot.dnum);
+
+        readseg
+        plot_triton
+        wmvControl('Overlay'); 
+                
     
     elseif strcmp(action, 'NextDetection')
-    % callback function to move plots to next detection
+        [~, nextDet] = lt_lVis_envDet_rf;
+    
+        if isempty(nextDet)
+            disp('Last detection! No detections found after current window.')
+            return
+        end
+    
+        REMORA.lt.lVis_det.suppressOverlay = true;
+    
+        while nextDet > PARAMS.raw.dnumEnd(end)
+            wmvControl('LoadNext');
+        end
+    
+        REMORA.lt.lVis_det.suppressOverlay = false;
+    
         motion('nextDet');
         wmvControl('Overlay');
+
         
     
     elseif strcmp(action, 'AddDetection')
@@ -375,9 +431,31 @@ function wmvControl(action)
         if isfield(REMORA.lt.lVis_det, 'verifiedFilePath')
             makeNewExamples;
         end
+%%
+    elseif strcmp(action, 'FilterDetections')
+        % callback function for filtering detections
+        disp('Filter detections button clicked.');
     
-    end
-     
+        labelOptions = REMORA.lt.lVis_det.labels;
+
+        [selectedIdx, ok] = listdlg( ...
+            'PromptString', 'Select labels to display:', ...
+            'SelectionMode', 'multiple', ...
+            'ListString', labelOptions);
+    
+        if ~ok
+            return;
+        end
+    
+        selectedLabels = labelOptions(selectedIdx);
+    
+        % Store the selected labels
+        REMORA.lt.lVis_det.selectedLabels = selectedLabels;
+    
+        % Refresh the display
+        wmvControl('Overlay');
+   end   
+%%     
 
    % graying out forwards / backwards buttons if at end / beginning of file
    % (this is achieved by copying the current state of the previous / next
